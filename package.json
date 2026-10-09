@@ -1,0 +1,18 @@
+{
+  "name": "night-sentinel-arkham-protocol",
+  "version": "1.0.0",
+  "description": "Night Sentinel: Arkham Protocol — original 3D open-city desktop game inspired by Arkham-style mechanics (glide, grapnel, detective vision, freeflow combat, armored interceptor car with pursuit + battle mode) + GTA-style wanted system.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3002 --host",
+    "build": "vite build",
+    "preview": "vite preview --port 3002 --host",
+    "start": "vite --port 3002 --host"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

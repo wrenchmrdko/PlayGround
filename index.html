@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Night Sentinel: Arkham Protocol — 3D Open City (Desktop)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230a0d1a'/><text x='16' y='23' font-size='18' text-anchor='middle' fill='%23ffd23f'>★</text></svg>" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05070d; font-family: 'Segoe UI', system-ui, Arial, sans-serif; color:#dfe7ff; }
+  #app { position:fixed; inset:0; }
+  canvas.game { display:block; width:100%; height:100%; }
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #topbar { position:absolute; top:14px; left:16px; right:16px; display:flex; justify-content:space-between; align-items:flex-start; }
+  #objective { background:rgba(8,12,24,.72); border:1px solid rgba(120,160,255,.25); border-left:3px solid #ffd23f; padding:10px 14px; border-radius:8px; max-width:420px; backdrop-filter:blur(6px); }
+  #objective h2 { font-size:13px; letter-spacing:.12em; color:#ffd23f; margin-bottom:4px; }
+  #objective p { font-size:13px; line-height:1.4; color:#cfd8ff; }
+  #wanted { display:flex; gap:6px; align-items:center; background:rgba(8,12,24,.72); padding:10px 14px; border-radius:10px; border:1px solid rgba(255,80,80,.25); }
+  .star { font-size:20px; color:#2a3350; text-shadow:0 0 8px #000; transition:all .2s; }
+  .star.on { color:#ffcc2e; text-shadow:0 0 12px #ff8800; }
+  #stats { position:absolute; left:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; width:300px; }
+  .barWrap { background:rgba(8,12,24,.72); border:1px solid rgba(120,160,255,.2); border-radius:10px; padding:10px 12px; }
+  .barLabel { font-size:11px; letter-spacing:.15em; opacity:.8; margin-bottom:6px; display:flex; justify-content:space-between; }
+  .bar { height:10px; background:#141b32; border-radius:6px; overflow:hidden; }
+  .bar > div { height:100%; transition:width .15s; }
+  #hpFill { background:linear-gradient(90deg,#37ff8b,#b6ff4a); width:100%; }
+  #xpFill { background:linear-gradient(90deg,#4aa8ff,#9a6bff); width:0%; }
+  #carFill { background:linear-gradient(90deg,#ff9a2e,#ff3d3d); width:100%; }
+  #combo { position:absolute; right:22px; top:38%; text-align:right; }
+  #comboNum { font-size:52px; font-weight:800; color:#ffd23f; text-shadow:0 0 18px rgba(255,180,0,.6), 0 2px 0 #000; }
+  #comboLabel { font-size:12px; letter-spacing:.3em; opacity:.8; }
+  #minimapWrap { position:absolute; right:16px; bottom:16px; background:rgba(8,12,24,.78); border:1px solid rgba(120,160,255,.25); border-radius:12px; padding:8px; }
+  #minimap { width:190px; height:190px; border-radius:8px; background:#070b18; display:block; }
+  #modeTag { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); background:rgba(8,12,24,.78); border:1px solid rgba(255,210,63,.35); padding:8px 16px; border-radius:20px; font-size:12px; letter-spacing:.18em; }
+  #controlsHint { position:absolute; left:50%; top:12px; transform:translateX(-50%); font-size:11px; letter-spacing:.08em; opacity:.65; background:rgba(0,0,0,.5); padding:6px 12px; border-radius:14px; white-space:nowrap; }
+  #menu { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 30%, rgba(30,50,110,.85), rgba(3,5,12,.96)); backdrop-filter:blur(4px); }
+  #menuCard { max-width:760px; width:92%; background:linear-gradient(180deg, rgba(16,24,48,.96), rgba(6,9,20,.97)); border:1px solid rgba(255,210,63,.3); border-radius:18px; padding:32px 34px; box-shadow:0 30px 80px rgba(0,0,0,.6); }
+  #menuCard h1 { font-size:34px; letter-spacing:.02em; line-height:1.1; }
+  #menuCard h1 span { color:#ffd23f; }
+  #menuCard p.sub { margin-top:8px; color:#9fb0dd; font-size:14px; line-height:1.55; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
+  .kb { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.6; }
+  .kb b { color:#ffd23f; }
+  #playBtn { pointer-events:auto; margin-top:20px; width:100%; padding:15px; font-size:17px; font-weight:800; letter-spacing:.12em; border:0; border-radius:12px; cursor:pointer; color:#0a0d1a; background:linear-gradient(90deg,#ffd23f,#ff9a2e); box-shadow:0 10px 30px rgba(255,180,20,.35); }
+  #playBtn:hover { filter:brightness(1.08); }
+  #toast { position:absolute; left:50%; top:22%; transform:translateX(-50%); font-size:22px; font-weight:800; letter-spacing:.06em; text-shadow:0 2px 0 #000, 0 0 24px rgba(255,210,63,.5); opacity:0; transition:opacity .3s; text-align:center; }
+  #dmgVignette { position:fixed; inset:0; pointer-events:none; box-shadow:inset 0 0 140px 40px rgba(255,20,20,.55); opacity:0; transition:opacity .2s; z-index:11; }
+  #detectiveTag { position:absolute; left:16px; top:84px; font-size:11px; letter-spacing:.2em; color:#4af2ff; border:1px solid rgba(74,242,255,.4); padding:6px 10px; border-radius:8px; background:rgba(0,40,50,.5); display:none; }
+  #missionList { margin-top:12px; font-size:12px; color:#aebbe6; line-height:1.7; }
+  #crosshair { position:absolute; left:50%; top:50%; width:14px; height:14px; margin:-7px 0 0 -7px; display:none; }
+  #crosshair:before, #crosshair:after { content:''; position:absolute; background:#ff4d4d; }
+  #crosshair:before { left:6px; top:0; width:2px; height:14px; }
+  #crosshair:after { top:6px; left:0; width:14px; height:2px; }
+  #fps { position:absolute; right:16px; top:76px; font-size:11px; opacity:.6; }
+  @media (max-width:800px){ .grid2{grid-template-columns:1fr;} #stats{width:220px;} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="dmgVignette"></div>
+<div id="hud">
+  <div id="controlsHint">WASD MOVE &nbsp;·&nbsp; MOUSE LOOK &nbsp;·&nbsp; SPACE JUMP / HOLD TO GLIDE &nbsp;·&nbsp; E ENTER CAR / GRAPNEL &nbsp;·&nbsp; Q DETECTIVE VISION &nbsp;·&nbsp; F STRIKE &nbsp;·&nbsp; R COUNTER &nbsp;·&nbsp; X BATTLE MODE</div>
+  <div id="topbar">
+    <div id="objective"><h2 id="objTitle">PROLOGUE — NIGHT FALLS</h2><p id="objText">Patrol the city. Press E near the Interceptor to drive. Clean the streets to draw out the Warden.</p></div>
+    <div id="wanted"><span style="font-size:11px;letter-spacing:.2em;opacity:.7">THREAT</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+  </div>
+  <div id="detectiveTag">◉ DETECTIVE VISION ACTIVE</div>
+  <div id="fps"></div>
+  <div id="combo"><div id="comboNum">0</div><div id="comboLabel">HITS</div></div>
+  <div id="stats">
+    <div class="barWrap"><div class="barLabel"><span>SENTINEL INTEGRITY</span><span id="hpTxt">100</span></div><div class="bar"><div id="hpFill"></div></div></div>
+    <div class="barWrap"><div class="barLabel"><span>XP — FEAR LEVEL</span><span id="xpTxt">Lv 1</span></div><div class="bar"><div id="xpFill"></div></div></div>
+    <div class="barWrap"><div class="barLabel"><span>INTERCEPTOR HULL</span><span id="carTxt">100%</span></div><div class="bar"><div id="carFill"></div></div></div>
+  </div>
+  <div id="minimapWrap"><canvas id="minimap" width="190" height="190"></canvas><div style="font-size:10px;letter-spacing:.2em;opacity:.6;text-align:center;margin-top:4px">GOTHAM-FALLS // N-DISTRICT</div></div>
+  <div id="modeTag">ON FOOT</div>
+  <div id="toast"></div>
+  <div id="crosshair"></div>
+</div>
+<div id="menu">
+  <div id="menuCard">
+    <h1>NIGHT SENTINEL:<br/><span>ARKHAM PROTOCOL</span></h1>
+    <p class="sub">An original fan-inspired 3D open-city prototype. Patrol a rain-slick night city on foot and in your armored <b>Interceptor</b> (pursuit + battle mode). Glide between towers with your cape, grapnel-boost, use Detective Vision, chain Freeflow strikes/counters, raise the GTA-style <b>Threat</b> system, and complete 3 story missions to face the <b>Warden</b>. All art &amp; code are original — no ripped Batman / GTA assets.</p>
+    <div class="grid2">
+      <div class="kb"><b>ON FOOT</b><br/>WASD move · Mouse look<br/>Shift sprint · Space jump (hold = glide)<br/>E grapnel to rooftop<br/>F strike · R counter · Q detective vision<br/>Near car + E = drive</div>
+      <div class="kb"><b>INTERCEPTOR (Batmobile-like)</b><br/>W/S throttle · A/D steer · Space handbrake<br/>Shift overdrive boost · E exit<br/>X battle mode (strafe + cannon)<br/>Mouse aim · Click fire cannon / missiles<br/>Ram drones &amp; thugs — don't blow the hull!</div>
+    </div>
+    <div id="missionList">★ M1 Hostage Rescue &nbsp; ★ M2 Bomb Disposal (Detective Vision) &nbsp; ★ M3 Warden Showdown &nbsp; · Side: Time Trial rings, Data packs, Predator nests</div>
+    <button id="playBtn">▶ &nbsp; START PATROL (CLICK TO PLAY)</button>
+    <p class="sub" style="margin-top:10px;font-size:12px">Desktop + keyboard/mouse recommended. Audio is procedural (WebAudio). Performance: ~60fps on integrated GPU.</p>
+  </div>
+</div>
+<script type="importmap">
+{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+</script>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
